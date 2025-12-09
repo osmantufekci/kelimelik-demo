@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelime Oyunu - Prototip V2</title>
+    <style>
+        :root {
+            --hex-bg: #dfe6e9;
+            --hex-active: #f1c40f; /* Harf alındığında */
+            --hex-user: #ffffff;   /* Kullanıcı yazdığında */
+            --bg-color: #2c3e50;
+            --text-color: #ecf0f1;
+            --wrong-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none; /* Metin seçimini engelle */
+        }
+
+        /* Üst Bilgi */
+        #stats-bar {
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* Soru */
+        #question-area {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 0 20px;
+            min-height: 100px;
+        }
+
+        #question-text { font-size: 1.6rem; margin-bottom: 5px; }
+        #extra-hint-text { color: #3498db; font-style: italic; min-height: 25px; }
+
+        /* PETEKLER (HEXAGONS) */
+        #word-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .letter-slot {
+            width: 55px;
+            height: 60px;
+            background-color: var(--hex-bg);
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        /* Bilgisayarın açtığı ipucu harfi */
+        .letter-slot.revealed {
+            background-color: var(--hex-active);
+            color: #2c3e50;
+        }
+
+        /* Kullanıcının yazdığı harf */
+        .letter-slot.user-input {
+            background-color: var(--hex-user);
+            border: 2px solid #fff; /* Vurgu */
+            color: #000;
+        }
+        
+        /* Aktif Yazma İmleci Efekti */
+        .letter-slot.current-cursor {
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            background-color: #ecf0f1;
+        }
+
+        /* Kontroller */
+        #controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #btn-get-letter { background-color: #7f8c8d; color: white; }
+        #btn-hint { background-color: #8e44ad; color: white; }
+
+        /* Bildirim Alanı */
+        #message-area {
+            height: 40px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .blink-red { animation: blink 1s infinite; color: var(--wrong-color); }
+        @keyframes blink { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <div id="stats-bar">
+        <div>Puan: <span id="score" style="color:#f1c40f">0</span></div>
+        <div>Süre: <span id="timer" style="color:#f1c40f">300</span></div>
+    </div>
+
+    <div id="question-area">
+        <div id="question-text">Soru Yükleniyor...</div>
+        <div id="extra-hint-text"></div>
+    </div>
+
+    <div id="word-container"></div>
+
+    <div id="message-area"></div>
+
+    <div id="controls">
+        <button id="btn-get-letter" onclick="getLetter()">Harf Al (-100)</button>
+        <button id="btn-hint" onclick="useHint()">Ekstra İpucu (<span id="hint-count">2</span>)</button>
+    </div>
+    
+    <p style="margin-top:30px; color:#bdc3c7; font-size:0.9rem;">
+        * Cevabı yazmak için klavyenizi kullanın. Onaylamak için ENTER'a basın.
+    </p>
+
+<script>
+    // --- OYUN VERİSİ ---
+    const questions = [
+        { word: "KEDİ", question: "Evcil, nankör olduğu söylenen hayvan.", hint: "Miyavlar." },
+        { word: "SEHPA", question: "Üzerine çay, kahve konulan küçük masa.", hint: "Mobilya." },
+        { word: "KARTAL", question: "Yırtıcı bir kuş türü, Beşiktaş'ın simgesi.", hint: "Yüksekten uçar." },
+        { word: "TELEFON", question: "Uzaktaki kişilerle konuşmayı sağlayan cihaz.", hint: "Alo denir." },
+        { word: "BİLGİSAYAR", question: "Veri işleyen elektronik cihaz.", hint: "Klavyesi var." },
+        { word: "HELİKOPTER", question: "Pervaneli hava taşıtı.", hint: "Dikey iniş yapar." },
+        { word: "CUMHURİYET", question: "Halkın kendi kendini yönettiği yönetim şekli.", hint: "29 Ekim." }
+    ];
+
+    // --- DURUM DEĞİŞKENLERİ ---
+    let currentQIndex = 0;
+    let totalScore = 0;
+    let currentWordValue = 0;
+    let timeLeft = 300;
+    let hintsLeft = 2;
+    
+    // Oyun Mantığı Değişkenleri
+    let revealedIndices = []; // İpucu ile açılanlar (Sistemin açtığı)
+    let userInputs = [];      // Kullanıcının yazdığı harfler (Array of char or null)
+    let wrongGuessCount = 0;  // O anki kelime için yanlış deneme sayısı
+    
+    let timerInterval;
+    let isGameActive = false;
+    let isWaitingNext = false; // Geçiş animasyonu sırasında girişi engellemek için
+
+    // DOM
+    const uiScore = document.getElementById('score');
+    const uiTimer = document.getElementById('timer');
+    const uiQuestion = document.getElementById('question-text');
+    const uiExtraHint = document.getElementById('extra-hint-text');
+    const uiWordContainer = document.getElementById('word-container');
+    const uiMessage = document.getElementById('message-area');
+    const uiHintCount = document.getElementById('hint-count');
+    const btnGetLetter = document.getElementById('btn-get-letter');
+
+    // --- BAŞLATMA ---
+    function initGame() {
+        isGameActive = true;
+        
+        // Klavye dinleyicisi ekle
+        document.addEventListener('keydown', handleKeyPress);
+        
+        startTimer();
+        loadQuestion();
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            if (timeLeft > 0 && isGameActive) {
+                timeLeft--;
+                uiTimer.innerText = timeLeft;
+            } else if (timeLeft <= 0) {
+                endGame("Süre Doldu!");
+            }
+        }, 1000);
+    }
+
+    function loadQuestion() {
+        if (currentQIndex >= questions.length) {
+            endGame("Tebrikler! Oyun Bitti. Toplam Puan: " + totalScore);
+            return;
+        }
+
+        const q = questions[currentQIndex];
+        
+        // Reset States
+        revealedIndices = [];
+        // Kullanıcı giriş dizisini kelime uzunluğu kadar boş oluştur
+        userInputs = new Array(q.word.length).fill(null);
+        wrongGuessCount = 0;
+        currentWordValue = q.word.length * 100;
+        isWaitingNext = false;
+        
+        // UI Reset
+        uiQuestion.innerText = q.question;
+        uiExtraHint.innerText = "";
+        uiMessage.innerText = "";
+        uiMessage.className = "";
+        btnGetLetter.disabled = false;
+
+        renderGrid();
+    }
+
+    // --- GÖRSELLEŞTİRME (RENDER) ---
+    function renderGrid() {
+        uiWordContainer.innerHTML = "";
+        const word = questions[currentQIndex].word;
+        
+        for (let i = 0; i < word.length; i++) {
+            const slot = document.createElement('div');
+            slot.classList.add('letter-slot');
+            
+            // 1. Durum: Sistem tarafından açılmış harf (Harf Al)
+            if (revealedIndices.includes(i)) {
+                slot.classList.add('revealed');
+                slot.innerText = word[i];
+            } 
+            // 2. Durum: Kullanıcının yazdığı harf
+            else if (userInputs[i] !== null) {
+                slot.classList.add('user-input');
+                slot.innerText = userInputs[i];
+            }
+            // 3. Durum: Boş kutu
+            else {
+                slot.innerText = "";
+            }
+
+            uiWordContainer.appendChild(slot);
+        }
+        
+        // İmleç efekti (Sıradaki boş kutuyu bul)
+        // Eğer oyun bitmediyse sıradaki boş kutuya highlight ekle
+        if(!isWaitingNext) {
+            const slots = document.querySelectorAll('.letter-slot');
+            const firstEmptyIndex = getFirstEmptyIndex();
+            if (firstEmptyIndex !== -1 && slots[firstEmptyIndex]) {
+                slots[firstEmptyIndex].classList.add('current-cursor');
+            }
+        }
+    }
+
+    // --- KLAVYE KONTROLÜ ---
+    function handleKeyPress(e) {
+        if (!isGameActive || isWaitingNext) return;
+
+        const key = e.key.toUpperCase();
+        const trMap = { 'i': 'İ', 'ı': 'I', 'ğ': 'Ğ', 'ü': 'Ü', 'ş': 'Ş', 'ö': 'Ö', 'ç': 'Ç' };
+        const char = trMap[e.key] || key; // Türkçe karakter düzeltmesi
+
+        // SADECE HARFLER
+        if (/^[A-ZİIĞÜŞÖÇ]$/.test(char)) {
+            fillNextSlot(char);
+        }
+        // SİLME (BACKSPACE)
+        else if (e.key === "Backspace") {
+            deleteLastInput();
+        }
+        // GÖNDERME (ENTER)
+        else if (e.key === "Enter") {
+            submitGuess();
+        }
+    }
+
+    function getFirstEmptyIndex() {
+        const wordLength = questions[currentQIndex].word.length;
+        for (let i = 0; i < wordLength; i++) {
+            // Hem sistem açmamış olsun hem kullanıcı yazmamış olsun
+            if (!revealedIndices.includes(i) && userInputs[i] === null) {
+                return i;
+            }
+        }
+        return -1; // Dolu
+    }
+
+    function fillNextSlot(char) {
+        const targetIndex = getFirstEmptyIndex();
+        if (targetIndex !== -1) {
+            userInputs[targetIndex] = char;
+            renderGrid();
+        }
+    }
+
+    function deleteLastInput() {
+        // Sondan başa doğru git, kullanıcının yazdığı (sistemin açmadığı) ilk harfi bul sil.
+        const wordLength = questions[currentQIndex].word.length;
+        for (let i = wordLength - 1; i >= 0; i--) {
+            if (!revealedIndices.includes(i) && userInputs[i] !== null) {
+                userInputs[i] = null;
+                renderGrid();
+                return;
+            }
+        }
+    }
+
+    // --- OYUN AKSİYONLARI ---
+
+    function getLetter() {
+        if (!isGameActive || isWaitingNext) return;
+
+        const word = questions[currentQIndex].word;
+        
+        // Henüz açılmamış (sistem tarafından) indeksleri bul
+        let unrevealedSystem = [];
+        for(let i=0; i<word.length; i++) {
+            if(!revealedIndices.includes(i)) unrevealedSystem.push(i);
+        }
+
+        if (unrevealedSystem.length === 0) return;
+
+        // Rastgele bir harf seç
+        const randomIndex = unrevealedSystem[Math.floor(Math.random() * unrevealedSystem.length)];
+        
+        // Eğer o indekste kullanıcının yazdığı bir harf varsa, onu ez (override)
+        userInputs[randomIndex] = null; 
+
+        revealedIndices.push(randomIndex);
+        currentWordValue -= 100;
+        
+        renderGrid();
+
+        // TÜMÜ AÇILDIYSA CEZA
+        if (revealedIndices.length === word.length) {
+            totalScore -= (word.length * 100);
+            uiScore.innerText = totalScore;
+            uiMessage.style.color = "#e74c3c";
+            uiMessage.innerText = "Tüm harfler açıldığı için puan silindi!";
+            isWaitingNext = true;
+            setTimeout(nextQuestion, 2000);
+        }
+    }
+
+    function submitGuess() {
+        const word = questions[currentQIndex].word;
+        
+        // Kelimeyi oluştur: Sistem harfleri + Kullanıcı harfleri
+        let builtWord = "";
+        let isComplete = true;
+
+        for (let i = 0; i < word.length; i++) {
+            if (revealedIndices.includes(i)) {
+                builtWord += word[i];
+            } else if (userInputs[i] !== null) {
+                builtWord += userInputs[i];
+            } else {
+                isComplete = false; // Boşluk var
+            }
+        }
+
+        if (!isComplete) {
+            uiMessage.style.color = "#f39c12";
+            uiMessage.innerText = "Lütfen tüm kutucukları doldurun.";
+            setTimeout(() => uiMessage.innerText = "", 1500);
+            return;
+        }
+
+        // KONTROL
+        if (builtWord === word) {
+            // DOĞRU
+            totalScore += currentWordValue;
+            uiScore.innerText = totalScore;
+            
+            uiMessage.className = "";
+            uiMessage.style.color = "#2ecc71";
+            uiMessage.innerText = "DOĞRU CEVAP!";
+            
+            // Tümünü sistem açmış gibi göster (görsel efekt)
+            revealedIndices = Array.from({length: word.length}, (_, i) => i);
+            userInputs.fill(null);
+            renderGrid();
+
+            isWaitingNext = true;
+            setTimeout(nextQuestion, 1500);
+
+        } else {
+            // YANLIŞ
+            wrongGuessCount++;
+            
+            if (wrongGuessCount === 1) {
+                // İlk Hata
+                uiMessage.className = "blink-red";
+                uiMessage.innerText = "YANLIŞ! 1 deneme hakkınız daha var.";
+                
+                // Kullanıcı girişlerini temizle (İpuçları kalsın)
+                userInputs.fill(null);
+                renderGrid();
+                
+            } else {
+                // İkinci Hata -> OYUN BİTER (Bu soru için)
+                uiMessage.className = "";
+                uiMessage.style.color = "#e74c3c";
+                uiMessage.innerText = "BİLEMEDİNİZ! Doğru cevap: " + word;
+                
+                // Cevabı göster
+                revealedIndices = Array.from({length: word.length}, (_, i) => i);
+                userInputs.fill(null);
+                renderGrid();
+
+                isWaitingNext = true;
+                setTimeout(nextQuestion, 3000);
+            }
+        }
+    }
+
+    function useHint() {
+        if (hintsLeft > 0) {
+            hintsLeft--;
+            uiHintCount.innerText = hintsLeft;
+            uiExtraHint.innerText = "İPUCU: " + questions[currentQIndex].hint;
+        } else {
+            uiMessage.innerText = "İpucu hakkınız kalmadı!";
+        }
+    }
+
+    function nextQuestion() {
+        currentQIndex++;
+        loadQuestion();
+    }
+
+    function endGame(msg) {
+        isGameActive = false;
+        clearInterval(timerInterval);
+        uiQuestion.innerText = msg;
+        uiWordContainer.innerHTML = "";
+        document.getElementById('controls').style.display = "none";
+        uiMessage.innerText = "";
+    }
+
+    window.onload = initGame;
+
+</script>
+</body>
+</html>
