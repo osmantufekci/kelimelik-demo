@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kelime Oyunu - Mobil Uyumlu</title>
+    <title>Kelime Oyunu - Final V6 (Oto Focus)</title>
     <style>
         :root {
             --hex-bg: #dfe6e9;
-            --hex-active: #f1c40f; /* Sistem açtığında */
-            --hex-user: #ffffff;   /* Kullanıcı yazdığında */
+            --hex-active: #f1c40f;
+            --hex-user: #ffffff;
             --bg-color: #2c3e50;
             --text-color: #ecf0f1;
             --wrong-color: #e74c3c;
@@ -21,27 +21,26 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start; /* Mobilde klavye açılınca yukarı kaymasın */
+            justify-content: flex-start;
             min-height: 100vh;
             margin: 0;
             padding-top: 20px;
             user-select: none;
-            -webkit-tap-highlight-color: transparent; /* Mobilde tıklama grisini kaldır */
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* GİZLİ INPUT (KLAVYE İÇİN) */
+        /* GİZLİ INPUT */
         #hidden-input {
             position: absolute;
-            opacity: 0;
+            opacity: 0; 
             top: -1000px;
             left: -1000px;
             height: 0;
             width: 0;
-            /* iOS zoom sorununu engellemek için font-size 16px olmalı */
             font-size: 16px; 
+            pointer-events: none;
         }
 
-        /* Üst Bilgi */
         #stats-bar {
             width: 90%;
             display: flex;
@@ -54,7 +53,6 @@
             font-weight: bold;
         }
 
-        /* Soru */
         #question-area {
             text-align: center;
             margin-bottom: 20px;
@@ -65,19 +63,18 @@
         #question-text { font-size: 1.3rem; margin-bottom: 5px; line-height: 1.4; }
         #extra-hint-text { color: #3498db; font-style: italic; min-height: 20px; font-size: 0.9rem; }
 
-        /* PETEKLER (HEXAGONS) */
         #word-container {
             display: flex;
             gap: 5px;
             margin-bottom: 20px;
             flex-wrap: wrap;
             justify-content: center;
-            cursor: text; /* Tıklanabilir hissi ver */
-            padding: 10px; /* Tıklama alanını genişlet */
+            cursor: text;
+            padding: 10px;
         }
 
         .letter-slot {
-            width: 45px; /* Mobilde biraz daha küçük */
+            width: 45px;
             height: 50px;
             background-color: var(--hex-bg);
             color: #333;
@@ -91,29 +88,14 @@
             position: relative;
         }
 
-        /* PC Ekranlarında daha büyük olsun */
         @media (min-width: 600px) {
-            .letter-slot {
-                width: 55px;
-                height: 60px;
-                font-size: 1.8rem;
-                gap: 8px;
-            }
+            .letter-slot { width: 55px; height: 60px; font-size: 1.8rem; gap: 8px; }
             #question-text { font-size: 1.6rem; }
         }
 
-        .letter-slot.revealed {
-            background-color: var(--hex-active);
-            color: #2c3e50;
-        }
-
-        .letter-slot.user-input {
-            background-color: var(--hex-user);
-            border: 2px solid #fff;
-            color: #000;
-        }
+        .letter-slot.revealed { background-color: var(--hex-active); color: #2c3e50; }
+        .letter-slot.user-input { background-color: var(--hex-user); border: 2px solid #fff; color: #000; }
         
-        /* Yanıp Sönen İmleç */
         .letter-slot.current-cursor::after {
             content: '|';
             animation: blink 1s infinite;
@@ -121,25 +103,16 @@
             font-weight: 100;
             position: absolute;
         }
-        
-        /* Eğer kutu doluysa imleç çıkmasın, sadece boş kutuda çıksın */
-        .letter-slot.user-input.current-cursor::after {
-            display: none;
-        }
+        .letter-slot.user-input.current-cursor::after { display: none; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-        @keyframes blink { 
-            0%, 100% { opacity: 1; } 
-            50% { opacity: 0; } 
-        }
-
-        /* Kontroller */
         #controls {
             display: flex;
             gap: 10px;
             justify-content: center;
             flex-wrap: wrap;
             width: 100%;
-            padding-bottom: 20px; /* Klavye açılınca altta boşluk kalsın */
+            padding-bottom: 20px;
         }
 
         button {
@@ -151,14 +124,15 @@
             font-weight: bold;
             text-transform: uppercase;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: opacity 0.2s;
         }
         button:active { transform: translateY(2px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #btn-get-letter { background-color: #7f8c8d; color: white; }
         #btn-hint { background-color: #8e44ad; color: white; }
-        #btn-submit { background-color: #27ae60; color: white; display: none; } /* Mobilde Enter yerine */
+        #btn-submit { background-color: #27ae60; color: white; display: none; }
 
-        /* Bildirim Alanı */
         #message-area {
             height: 40px;
             margin-top: 10px;
@@ -170,16 +144,15 @@
         
         .blink-red { animation: blink-text 1s infinite; color: var(--wrong-color); }
         @keyframes blink-text { 50% { opacity: 0; } }
-
     </style>
 </head>
 <body>
 
-    <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" spellcheck="false">
+    <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 
     <div id="stats-bar">
         <div>Puan: <span id="score" style="color:#f1c40f">0</span></div>
-        <div>Süre: <span id="timer" style="color:#f1c40f">300</span></div>
+        <div>Süre: <span id="timer" style="color:#f1c40f">05:00</span></div>
     </div>
 
     <div id="question-area">
@@ -196,10 +169,6 @@
         <button id="btn-hint" onclick="useHint()">Ekstra İpucu (<span id="hint-count">2</span>)</button>
         <button id="btn-submit" onclick="submitGuess()">ONAYLA</button>
     </div>
-    
-    <p style="margin-top:10px; color:#bdc3c7; font-size:0.8rem; text-align:center; opacity: 0.7;">
-        * Yazmak için kutulara dokunun.<br>Harf silmek için klavyedeki silme tuşunu kullanın.
-    </p>
 
 <script>
     // --- OYUN VERİSİ ---
@@ -223,6 +192,8 @@
     let userInputs = [];      
     let wrongGuessCount = 0;  
     
+    let hintUsedThisRound = false; 
+    
     let timerInterval;
     let isGameActive = false;
     let isWaitingNext = false;
@@ -237,73 +208,72 @@
     const uiHintCount = document.getElementById('hint-count');
     const btnGetLetter = document.getElementById('btn-get-letter');
     const btnSubmit = document.getElementById('btn-submit');
+    const btnHint = document.getElementById('btn-hint');
     const hiddenInput = document.getElementById('hidden-input');
 
     function initGame() {
         isGameActive = true;
+        uiTimer.innerText = formatTime(timeLeft);
         startTimer();
         loadQuestion();
         setupMobileInput();
     }
 
-    // --- MOBİL GİRİŞ YÖNETİMİ ---
-    function focusInput() {
-        if (!isGameActive || isWaitingNext) return;
-        hiddenInput.focus();
-        
-        // Eğer mobildeyse "ONAYLA" butonunu görünür yapabiliriz (opsiyonel)
-        if(window.innerWidth < 600) {
-            btnSubmit.style.display = "inline-block";
-        }
-    }
-
-    function setupMobileInput() {
-        // Input dinleyicisi: Mobilde ve PC'de yazılan her şeyi yakalar
-        hiddenInput.addEventListener('input', (e) => {
-            if (!isGameActive || isWaitingNext) {
-                hiddenInput.value = ""; 
-                return;
-            }
-
-            // Silme işlemi (Backspace)
-            if (e.inputType === 'deleteContentBackward') {
-                deleteLastInput();
-            } 
-            // Veri girişi
-            else if (e.data) {
-                // Son girilen karakteri al
-                const char = e.data.slice(-1).toUpperCase();
-                
-                // Türkçe karakter haritası
-                const trMap = { 'i': 'İ', 'ı': 'I', 'ğ': 'Ğ', 'ü': 'Ü', 'ş': 'Ş', 'ö': 'Ö', 'ç': 'Ç' };
-                const finalChar = trMap[char.toLowerCase()] || char;
-
-                if (/^[A-ZİIĞÜŞÖÇ]$/.test(finalChar)) {
-                    fillNextSlot(finalChar);
-                }
-            }
-            
-            // Inputu temizle ki bir sonraki harf için hazır olsun
-            hiddenInput.value = "";
-        });
-
-        // Enter tuşu kontrolü (PC klavyesi veya Mobil klavyedeki 'Git' tuşu)
-        hiddenInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                submitGuess();
-            }
-        });
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
     function startTimer() {
         timerInterval = setInterval(() => {
             if (timeLeft > 0 && isGameActive) {
                 timeLeft--;
-                uiTimer.innerText = timeLeft;
+                uiTimer.innerText = formatTime(timeLeft);
             } else if (timeLeft <= 0) {
+                uiTimer.innerText = "00:00";
                 endGame("Süre Doldu!");
             }
         }, 1000);
+    }
+
+    function setupMobileInput() {
+        hiddenInput.value = " ";
+        hiddenInput.addEventListener('input', (e) => {
+            if (!isGameActive || isWaitingNext) {
+                hiddenInput.value = " "; 
+                return;
+            }
+            const val = hiddenInput.value;
+            if (val.length === 0) {
+                deleteLastInput();
+                hiddenInput.value = " "; 
+                return;
+            }
+            if (val.length > 1) {
+                const char = val.slice(-1).toUpperCase();
+                const trMap = { 'i': 'İ', 'ı': 'I', 'ğ': 'Ğ', 'ü': 'Ü', 'ş': 'Ş', 'ö': 'Ö', 'ç': 'Ç' };
+                const finalChar = trMap[char.toLowerCase()] || char;
+                if (/^[A-ZİIĞÜŞÖÇ]$/.test(finalChar)) {
+                    fillNextSlot(finalChar);
+                }
+                hiddenInput.value = " ";
+            }
+        });
+        hiddenInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitGuess();
+            }
+        });
+    }
+
+    function focusInput() {
+        if (!isGameActive || isWaitingNext) return;
+        hiddenInput.focus();
+        if(window.innerWidth < 600) {
+            btnSubmit.style.display = "inline-block";
+        }
     }
 
     function loadQuestion() {
@@ -319,32 +289,40 @@
         currentWordValue = q.word.length * 100;
         isWaitingNext = false;
         
+        hintUsedThisRound = false; 
+        
         uiQuestion.innerText = q.question;
         uiExtraHint.innerText = "";
         uiMessage.innerText = "";
         uiMessage.className = "";
+        
         btnGetLetter.disabled = false;
-        btnSubmit.style.display = "none"; // Her soruda gizle
+        btnSubmit.style.display = "none";
+        
+        if (hintsLeft > 0) {
+            btnHint.disabled = false;
+        } else {
+            btnHint.disabled = true;
+        }
 
+        hiddenInput.value = " ";
         renderGrid();
-        // Soru yüklendiğinde otomatik klavye açmaya çalışmak mobilde genelde engellenir.
-        // Kullanıcı bir kere dokunmalıdır.
+        
+        // --- KRİTİK EKLEME: PC için zorla odakla, Mobil için şansını dene ---
+        setTimeout(() => {
+            hiddenInput.focus();
+        }, 100);
     }
 
     function renderGrid() {
         uiWordContainer.innerHTML = "";
         const word = questions[currentQIndex].word;
-        
-        // İmlecin nereye konacağını bul
         let cursorIndex = getFirstEmptyIndex();
-        // Eğer her yer doluysa ama henüz submit edilmediyse, imleç son kutuda kalsın mı? 
-        // Ya da hiç görünmesin. Şu an -1 ise görünmez.
 
         for (let i = 0; i < word.length; i++) {
             const slot = document.createElement('div');
             slot.classList.add('letter-slot');
             
-            // İmleç Mantığı
             if (!isWaitingNext && i === cursorIndex) {
                 slot.classList.add('current-cursor');
             }
@@ -365,9 +343,7 @@
     function getFirstEmptyIndex() {
         const wordLength = questions[currentQIndex].word.length;
         for (let i = 0; i < wordLength; i++) {
-            if (!revealedIndices.includes(i) && userInputs[i] === null) {
-                return i;
-            }
+            if (!revealedIndices.includes(i) && userInputs[i] === null) return i;
         }
         return -1;
     }
@@ -382,7 +358,6 @@
 
     function deleteLastInput() {
         const wordLength = questions[currentQIndex].word.length;
-        // Sondan başa doğru git, kullanıcının yazdığı ilk harfi sil
         for (let i = wordLength - 1; i >= 0; i--) {
             if (!revealedIndices.includes(i) && userInputs[i] !== null) {
                 userInputs[i] = null;
@@ -394,9 +369,9 @@
 
     function getLetter() {
         if (!isGameActive || isWaitingNext) return;
-
-        // Klavyeyi odakta tut
-        hiddenInput.focus();
+        
+        // Odak kaybetme!
+        hiddenInput.focus(); 
 
         const word = questions[currentQIndex].word;
         let unrevealedSystem = [];
@@ -420,89 +395,87 @@
             uiMessage.style.color = "#e74c3c";
             uiMessage.innerText = "Tüm harfler açıldı, puan silindi!";
             isWaitingNext = true;
-            hiddenInput.blur(); // Klavyeyi kapat
+            // Blur etmiyoruz! Focus'u koruyoruz.
             setTimeout(nextQuestion, 2000);
+        }
+    }
+
+    function useHint() {
+        if (hintUsedThisRound) {
+            uiMessage.innerText = "Bu soru için ipucu zaten aldınız.";
+            return;
+        }
+
+        if (hintsLeft > 0) {
+            hintsLeft--;
+            hintUsedThisRound = true; 
+            
+            uiHintCount.innerText = hintsLeft;
+            uiExtraHint.innerText = "İPUCU: " + questions[currentQIndex].hint;
+            
+            btnHint.disabled = true;
+            hiddenInput.focus();
+        } else {
+            uiMessage.innerText = "İpucu hakkınız kalmadı!";
         }
     }
 
     function submitGuess() {
         if(!isGameActive || isWaitingNext) return;
-
         const word = questions[currentQIndex].word;
-        
         let builtWord = "";
         let isComplete = true;
 
         for (let i = 0; i < word.length; i++) {
-            if (revealedIndices.includes(i)) {
-                builtWord += word[i];
-            } else if (userInputs[i] !== null) {
-                builtWord += userInputs[i];
-            } else {
-                isComplete = false;
-            }
+            if (revealedIndices.includes(i)) builtWord += word[i];
+            else if (userInputs[i] !== null) builtWord += userInputs[i];
+            else isComplete = false;
         }
 
         if (!isComplete) {
             uiMessage.style.color = "#f39c12";
             uiMessage.innerText = "Lütfen tüm kutucukları doldurun.";
-            focusInput(); // Klavyeyi geri aç
+            hiddenInput.focus();
             setTimeout(() => uiMessage.innerText = "", 1500);
             return;
         }
 
         if (builtWord === word) {
-            // DOĞRU
             totalScore += currentWordValue;
             uiScore.innerText = totalScore;
-            
             uiMessage.className = "";
             uiMessage.style.color = "#2ecc71";
             uiMessage.innerText = "DOĞRU CEVAP!";
-            
             revealedIndices = Array.from({length: word.length}, (_, i) => i);
             userInputs.fill(null);
             renderGrid();
             
-            hiddenInput.blur(); // Klavyeyi kapat
+            // --- KRİTİK DEĞİŞİKLİK: BLUR KALDIRILDI ---
+            // hiddenInput.blur(); <-- BU SATIR SİLİNDİ
+            // Yerine:
+            hiddenInput.focus(); // Focus'u yenile
+            
             isWaitingNext = true;
             setTimeout(nextQuestion, 1500);
-
         } else {
-            // YANLIŞ
             wrongGuessCount++;
-            
             if (wrongGuessCount === 1) {
                 uiMessage.className = "blink-red";
                 uiMessage.innerText = "YANLIŞ! 1 deneme hakkınız daha var.";
                 userInputs.fill(null);
                 renderGrid();
-                focusInput(); // Klavyeyi tekrar aç
-                
+                hiddenInput.focus();
             } else {
                 uiMessage.className = "";
                 uiMessage.style.color = "#e74c3c";
                 uiMessage.innerText = "BİLEMEDİNİZ! Doğru cevap: " + word;
-                
                 revealedIndices = Array.from({length: word.length}, (_, i) => i);
                 userInputs.fill(null);
                 renderGrid();
-
-                hiddenInput.blur();
+                // Burada da blur yok, akış devam ediyor
                 isWaitingNext = true;
                 setTimeout(nextQuestion, 3000);
             }
-        }
-    }
-
-    function useHint() {
-        if (hintsLeft > 0) {
-            hintsLeft--;
-            uiHintCount.innerText = hintsLeft;
-            uiExtraHint.innerText = "İPUCU: " + questions[currentQIndex].hint;
-            focusInput();
-        } else {
-            uiMessage.innerText = "İpucu hakkınız kalmadı!";
         }
     }
 
@@ -518,7 +491,7 @@
         uiWordContainer.innerHTML = "";
         document.getElementById('controls').style.display = "none";
         uiMessage.innerText = "";
-        hiddenInput.blur();
+        hiddenInput.blur(); // Oyun bitince klavyeyi kapat
     }
 
     window.onload = initGame;
